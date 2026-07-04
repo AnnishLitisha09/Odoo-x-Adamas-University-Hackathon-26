@@ -101,7 +101,7 @@ async function updateSalaryInfo(req, res) {
         });
       }
 
-      const totalWithoutFixed = basicAmount + otherSum;
+      const totalWithoutFixed = parseFloat((basicAmount + otherSum).toFixed(2));
 
       if (totalWithoutFixed > updatedWage) {
         await transaction.rollback();
@@ -111,7 +111,7 @@ async function updateSalaryInfo(req, res) {
       }
 
       // Compute fixed allowance as residual
-      const fixedAmount = updatedWage - totalWithoutFixed;
+      const fixedAmount = parseFloat((updatedWage - totalWithoutFixed).toFixed(2));
       computedComponents.push({
         name: 'fixed_allowance',
         computationType: 'fixed_amount',
