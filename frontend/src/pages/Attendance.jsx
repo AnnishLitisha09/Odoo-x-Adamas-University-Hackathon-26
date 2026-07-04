@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiGetAttendance, apiGetMyAttendance } from '../api/client';
 import Header from '../components/Header';
