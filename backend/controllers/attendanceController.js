@@ -126,6 +126,45 @@ async function getAttendanceLogs(req, res) {
       ]
     });
 
+    if (isAdminOrHr && !employeeId) {
+      // Return a complete list of all employees with their attendance for this date (default to 'absent' if not present)
+      const allEmployees = await Employee.findAll({
+        attributes: ['id', 'firstName', 'lastName', 'jobPosition', 'profilePicUrl']
+      });
+
+      const logMap = new Map(logs.map(l => [l.employeeId, l]));
+
+      // Query active leaves for this date
+      const activeLeaves = await LeaveRequest.findAll({
+        where: {
+          status: 'approved',
+          startDate: { [Op.lte]: filterDate },
+          endDate: { [Op.gte]: filterDate }
+        }
+      });
+      const leaveMap = new Map(activeLeaves.map(l => [l.employeeId, l]));
+
+      const fullLogs = allEmployees.map(emp => {
+        if (logMap.has(emp.id)) {
+          return logMap.get(emp.id);
+        }
+        const hasLeave = leaveMap.has(emp.id);
+        return {
+          id: `temp-${emp.id}`,
+          employeeId: emp.id,
+          date: filterDate,
+          checkIn: null,
+          checkOut: null,
+          workHours: 0.00,
+          extraHours: 0.00,
+          status: hasLeave ? 'leave' : 'absent',
+          employee: emp
+        };
+      });
+
+      return res.status(200).json(fullLogs);
+    }
+
     return res.status(200).json(logs);
   } catch (error) {
     console.error('Error fetching attendance logs:', error);
