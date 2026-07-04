@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, CheckCircle, AlertCircle, Save } from 'lucide-react';
+import { Users, CheckCircle, AlertCircle, Save, Search } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiGetAllLeaveBalances, apiUpdateLeaveBalance } from '../api/client';
 import Header from '../components/Header';
@@ -22,6 +22,7 @@ export default function LeaveAllocation() {
   const [saved, setSaved] = useState({});         // { [balanceId]: bool }
   const [error, setError] = useState({});
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchBalances();
@@ -79,6 +80,12 @@ export default function LeaveAllocation() {
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
+  const filteredBalances = balances.filter(b => {
+    if (!search) return true;
+    const name = `${b.employee?.firstName || ''} ${b.employee?.lastName || ''}`.toLowerCase();
+    return name.includes(search.toLowerCase());
+  });
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       <Header activeTab="allocation" />
@@ -90,16 +97,29 @@ export default function LeaveAllocation() {
             <h1 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.2rem' }}>Leave Allocation</h1>
             <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>Set each employee's annual paid and sick leave entitlement.</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <label className="field-label" style={{ marginBottom: 0, whiteSpace: 'nowrap' }}>Year:</label>
-            <select
-              id="year-select"
-              className="select-field"
-              value={year}
-              onChange={e => setYear(parseInt(e.target.value))}
-              style={{ width: 100 }}>
-              {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+              <input
+                id="alloc-search"
+                className="input-field"
+                placeholder="Search employee…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ paddingLeft: '2.2rem', width: 200 }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label className="field-label" style={{ marginBottom: 0, whiteSpace: 'nowrap' }}>Year:</label>
+              <select
+                id="year-select"
+                className="select-field"
+                value={year}
+                onChange={e => setYear(parseInt(e.target.value))}
+                style={{ width: 100 }}>
+                {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -112,10 +132,10 @@ export default function LeaveAllocation() {
         <div className="card" style={{ overflow: 'hidden' }}>
           {loading ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>Loading allocations…</div>
-          ) : balances.length === 0 ? (
+          ) : filteredBalances.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
               <Users size={40} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
-              <p>No leave records found for {year}. Records are created when employees join.</p>
+              <p>No leave records found for {year} matching your search.</p>
             </div>
           ) : (
             <table className="data-table">
@@ -129,7 +149,7 @@ export default function LeaveAllocation() {
                 </tr>
               </thead>
               <tbody>
-                {balances.map(b => {
+                {filteredBalances.map(b => {
                   const draft = drafts[b.id] || { paid: b.paidDaysAvailable, sick: b.sickDaysAvailable };
                   const name = `${b.employee?.firstName || ''} ${b.employee?.lastName || ''}`.trim();
                   const dirty = isDirty(b);
